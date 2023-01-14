@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import random
 
 def play_game(model1, model2):
     board = np.zeros((3, 3))
@@ -90,7 +89,14 @@ model = tf.keras.Sequential([
 # Compile the model with a loss function and an optimizer
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
-model.load_weights("weights_iteration.h5")
+optimizer = tf.keras.optimizers.Adam()
+
+ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
+manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
+
+model.load_weights(manager.latest_checkpoint)
+
+ckpt.restore(manager.latest_checkpoint)
 
 # Initialize the weights of the neural network with random values
 # model.init_weights()
@@ -98,9 +104,7 @@ model.load_weights("weights_iteration.h5")
 # Create a clone of the original model
 clone_model = tf.keras.models.clone_model(model)
 
-# Copy the weights of the original model to the clone
-
-num_games = 1000
+num_games = 1001
 
 # Define the training loop
 for i in range(num_games):
@@ -121,7 +125,7 @@ for i in range(num_games):
     
     # Saving the model weights
     if i % 100 == 0 and i != 0:
-        model.save_weights("weights_iteration.h5")
+        manager.save()
         print("Saved weights")
 
 # After training, the neural network can be used to make moves in a game of Tic-Tac-Toe

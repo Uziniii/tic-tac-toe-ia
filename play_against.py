@@ -17,20 +17,23 @@ def play_game(model):
             row, col = next_move // 3, next_move % 3
 
             # Make the move
-            if board[row, col] != 0:
-                row, col = random.choice(range(3)), random.choice(range(3))
+            while board[row][col] != 0:
+                # If it is, choose a different action
+                move_probs[0, next_move] = 0
+                next_move = np.argmax(move_probs)
 
-                if board[row, col] != 0:
-                    continue
+                row, col = next_move // 3, next_move % 3
 
-                board[row, col] = current_player
-            else:
-                board[row, col] = current_player
+            board[row, col] = current_player
         else:
             # Human player
             print_board(board)
             row = int(input("Enter row: ")) - 1
             col = int(input("Enter col: ")) - 1
+
+            if row not in range(3) or col not in range(3):
+                print("Invalid move")
+                continue
 
             # Make the move
             if board[row, col] != 0:
@@ -96,7 +99,12 @@ model = tf.keras.Sequential([
 # Compile the model with a loss function and an optimizer
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
-model.load_weights("weights_iteration.h5")
+optimizer = tf.keras.optimizers.Adam()
+
+ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
+manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
+
+model.load_weights(manager.latest_checkpoint)
 
 board, winner, current_player = play_game(model)
 
